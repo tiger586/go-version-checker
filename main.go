@@ -1,15 +1,19 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/go-co-op/gocron/v2"
 	"github.com/joho/godotenv"
 )
 
@@ -49,46 +53,83 @@ func main() {
 		return
 	}
 
-	interval := os.Getenv("CHECK_INTERVAL")
-	if interval == "" {
-		interval = "6h"
+	schedule := os.Getenv("CRON_SCHEDULE")
+	if schedule == "" {
+		schedule = "0 */6 * * *"
 	}
 
-	checkInterval, err = time.ParseDuration(interval)
+	s, err := gocron.NewScheduler()
 	if err != nil {
-		fmt.Println("CHECK_INTERVAL 格式錯誤:", err)
-		return
+		panic(err)
 	}
 
-	fmt.Println("檢查間隔:", checkInterval)
+	_, err = s.NewJob(
+		gocron.CronJob(
+			schedule,
+			false,
+		),
+		gocron.NewTask(
+			checkVersion,
+		),
+	)
+
+	if err != nil {
+		panic(err)
+	}
+
+	s.Start()
+
+	fmt.Println("排程啟動:", schedule)
 
 	// 啟動時先檢查一次
 	checkVersion()
 
-	// 定時檢查
-	ticker := time.NewTicker(checkInterval)
-	defer ticker.Stop()
+	// graceful shutdown
+	// 建立 signal channel
+	sigChan := make(chan os.Signal, 1)
 
-	// for {
-	// 	select {
-	// 	case <-ticker.C:
-	// 		checkVersion()
-	// 	}
-	// }
-	// 本質上是一個「永不結束的阻塞事件迴圈」，用來持續接收 ticker 的時間事件。
-	// 現在只有一個 case
-	// 所以 select 其實是「多餘的」。
-	// 👉 這段可以簡化。
-	for range ticker.C {
-		checkVersion()
+	// 監聽 Ctrl+C / docker stop
+	signal.Notify(
+		sigChan,
+		os.Interrupt,
+		syscall.SIGTERM,
+	)
+
+	// 阻塞等待 signal
+	sig := <-sigChan
+
+	fmt.Println("收到關閉訊號:", sig)
+
+	// 建立 timeout context
+	shutdownCtx, cancel := context.WithTimeout(
+		context.Background(),
+		10*time.Second,
+	)
+	defer cancel()
+
+	done := make(chan struct{})
+
+	go func() {
+		defer close(done)
+
+		err = s.Shutdown()
+		if err != nil {
+			fmt.Println("scheduler shutdown error:", err)
+		}
+	}()
+
+	select {
+	case <-done:
+		fmt.Println("程式已安全關閉")
+
+	case <-shutdownCtx.Done():
+		fmt.Println("shutdown timeout")
 	}
 }
 
 func checkVersion() {
 	now := time.Now()
-	fmt.Println("開始檢查:", now.Format(time.RFC3339))
-	nextCheck := now.Add(checkInterval).Format(time.RFC3339)
-	fmt.Println("下次檢查:", nextCheck)
+	fmt.Println("排程檢查:", now.Format("2006-01-02 15:04:05 -07:00")) // now.Format(time.RFC3339))
 
 	latestVersion, err := getLatestGoVersion()
 	if err != nil {
@@ -102,7 +143,7 @@ func checkVersion() {
 		return
 	}
 
-	fmt.Println("最新版本:", latestVersion)
+	// fmt.Println("最新版本:", latestVersion)
 	fmt.Println("紀錄版本:", recordedVersion)
 
 	info, err := getReleaseInfo(latestVersion)
@@ -110,10 +151,10 @@ func checkVersion() {
 		fmt.Println(err)
 		return
 	}
-	fmt.Println(" Release:", info)
 
 	if latestVersion != recordedVersion {
-		fmt.Println("發現新版本")
+		// fmt.Println("發現新版本")
+		fmt.Println("🚀 發現新的 Go 版本：", info)
 
 		err = sendTelegramMessage(
 			fmt.Sprintf(
@@ -138,6 +179,7 @@ func checkVersion() {
 	} else {
 		fmt.Println("沒有新版本")
 	}
+	fmt.Println()
 }
 
 func getLatestGoVersion() (string, error) {
@@ -242,39 +284,3 @@ func getReleaseInfo(version string) (string, error) {
 
 	return result, nil
 }
-
-// func getReleaseInfo(version string) (string, error) {
-// 	resp, err := http.Get("https://go.dev/doc/devel/release")
-// 	if err != nil {
-// 		return "", err
-// 	}
-// 	defer resp.Body.Close()
-
-// 	doc, err := goquery.NewDocumentFromReader(resp.Body)
-// 	if err != nil {
-// 		return "", err
-// 	}
-
-// 	var result string
-
-// 	doc.Find("p#" + version).Each(func(i int, s *goquery.Selection) {
-// 		text := strings.TrimSpace(s.Text())
-
-// 		// 把換行 / tab / 多空白壓成單行
-// 		text = strings.Join(strings.Fields(text), " ")
-
-// 		// 只保留前半段（避免 includes）
-// 		// go1.26.3 (released 2026-05-07) includes ...
-// 		if idx := strings.Index(text, "includes"); idx != -1 {
-// 			text = strings.TrimSpace(text[:idx])
-// 		}
-
-// 		result = text
-// 	})
-
-// 	if result == "" {
-// 		return "", fmt.Errorf("version not found")
-// 	}
-
-// 	return result, nil
-// }

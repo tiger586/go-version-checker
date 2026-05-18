@@ -8,7 +8,7 @@
 * Go Release 網頁爬蟲（取得發布日期與資訊）
 * Telegram 通知機制
 * 本地紀錄檔避免重複通知
-* 內建定時檢查（不需 cron）
+* 內建排程檢查（不需系統 cron）
 
 ---
 
@@ -20,7 +20,7 @@
 * 🧠 使用 **record.txt** 避免重複通知
 * ⏰ 可透過 **.env** 設定檢查間隔
 * 🐳 支援 Docker Compose 部署
-* 🧩 內建 ticker 排程（不依賴 cron）
+* 🧩 內建排程（不依賴系統 cron）
 
 ---
 
@@ -43,22 +43,29 @@ Go Release 頁面 → 取得發布日期
 建立 **.env** 檔案：
 
 ```env
-CHECK_INTERVAL=6h
-
 BOT_TOKEN=你的Telegram Bot Token
 CHAT_ID=你的Telegram Chat ID
+
+# 分 時 日 月 星期
+CRON_SCHEDULE=0 */6 * * *
 ```
 
 ---
 
-### ⏱ 支援時間格式
+### ⏱ 時間格式
 
-| 格式    | 說明   |
-| ----- | ---- |
-| **10s** | 10 秒 |
-| **5m**  | 5 分鐘 |
-| **6h**  | 6 小時 |
-| **24h** | 1 天  |
+|分| 時| 日| 月| 星期|
+|--|--|--|--|--|
+|0| */6| *| *| *|
+
+> [!TIP]
+>
+> **這個意思是，每天這些時間執行**
+>  
+> 00:00  
+> 06:00  
+> 12:00  
+> 18:00  
 
 ---
 
@@ -123,10 +130,11 @@ cp .env.example .env
 編輯 **.env** 檔案：
 
 ```env
-CHECK_INTERVAL=6h
-
 BOT_TOKEN=你的Telegram Bot Token
 CHAT_ID=你的Telegram Chat ID
+
+# 分 時 日 月 星期
+CRON_SCHEDULE=0 */6 * * *
 ```
 
 ### 2️⃣ 執行程式
@@ -152,10 +160,11 @@ cp record.txt ./app
 編輯 **./app/.env** 檔案：
 
 ```env
-CHECK_INTERVAL=6h
-
 BOT_TOKEN=你的Telegram Bot Token
 CHAT_ID=你的Telegram Chat ID
+
+# 分 時 日 月 星期
+CRON_SCHEDULE=0 */6 * * *
 ```
 
 ### 1️⃣ 編譯程式
@@ -167,7 +176,7 @@ go build -o app/gocheck .
 ### 2️⃣ 啟動服務
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 ---
@@ -192,9 +201,9 @@ services:
 
 ## 🧠 設計說明
 
-### 為什麼不使用 cron？
+### 為什麼不使用系統的 cron？
 
-本專案使用 Go 內建 ticker：
+本專案使用 go-co-op/gocron 套件：
 
 * 更容易部署
 * Docker 友善
@@ -217,7 +226,7 @@ services:
 ```
 啟動程式
    ↓
-定時檢查
+排程檢查
    ↓
 取得最新版本
    ↓
