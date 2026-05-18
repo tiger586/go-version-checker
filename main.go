@@ -146,13 +146,15 @@ func checkVersion() {
 	// fmt.Println("最新版本:", latestVersion)
 	fmt.Println("紀錄版本:", recordedVersion)
 
-	info, err := getReleaseInfo(latestVersion)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
+	// 比降是否有新版本
 	if latestVersion != recordedVersion {
+		// 查詢 Release 網頁
+		info, err := getReleaseInfo(latestVersion)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
 		// fmt.Println("發現新版本")
 		fmt.Println("🚀 發現新的 Go 版本：", info)
 
