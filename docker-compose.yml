@@ -1,11 +1,11 @@
 services:
   gocheck:
-    image: alpine:latest
+    image: tiger586/alpine-tz:latest   # 🎯 在這裡指定您想要的「簡短鏡像名稱」與標籤
     container_name: gocheck
     restart: always
+    environment:
+      - TZ=Asia/Taipei       # 💡 可以在這裡自由修改或指定時區
     volumes:
-      - /etc/localtime:/etc/localtime:ro
-      - /etc/timezone:/etc/timezone:ro
       - ./app:/app # 將目前目錄掛載到容器內的 /app 目錄
     working_dir: /app # 指定工作目錄，在此目錄下執行命令
     command: ./gocheck # 執行程式
