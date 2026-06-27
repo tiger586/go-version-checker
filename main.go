@@ -155,14 +155,15 @@ func checkVersion() {
 			return
 		}
 
-		// fmt.Println("發現新版本")
-		fmt.Println("🚀 發現新的 Go 版本：", info)
+		before, after, _ := strings.Cut(info, "includes")
+
+		fmt.Printf("🚀 發現新的 Go 版本：%s\n", strings.TrimSpace(before))
 
 		err = sendTelegramMessage(
 			fmt.Sprintf(
-				"🚀 發現新的 Go 版本：%s",
-				// latestVersion,
-				info,
+				"🚀 發現新的 Go 版本：%s \n📖 更新內容：\n%s",
+				strings.TrimSpace(before),
+				strings.TrimSpace(after),
 			),
 		)
 
@@ -270,13 +271,12 @@ func getReleaseInfo(version string) (string, error) {
 		if id == version {
 			text := strings.Join(strings.Fields(s.Text()), " ")
 			// 只保留前半段（避免 includes）
-			// go1.26.3 (released 2026-05-07) includes ...
-			// if idx := strings.Index(text, "includes"); idx != -1 {
-			// 	result = strings.TrimSpace(text[:idx])
+			// go1.26.4 (released 2026-06-02) includes ...
+			// if before, _, ok := strings.Cut(text, "includes"); ok {
+			// 	result = strings.TrimSpace(before)
 			// }
-			if before, _, ok := strings.Cut(text, "includes"); ok {
-				result = strings.TrimSpace(before)
-			}
+
+			result = strings.TrimSpace(text)
 		}
 	})
 

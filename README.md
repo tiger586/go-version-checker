@@ -79,6 +79,7 @@ CRON_SCHEDULE=0 */6 * * *
 ├── .env.example
 ├── .env
 ├── docker-compose.yml
+├── go-upgrade.sh   # 自動更新 Go 的腳本
 └── app/
     ├── .env
     ├── record.txt  # 紀錄檔
@@ -172,6 +173,10 @@ CRON_SCHEDULE=0 */6 * * *
 ```bash
 go build -o app/gocheck .
 ```
+或是 縮小編譯出來的二進位檔案體積（產物大小）
+```bash
+go build -ldflags "-s -w" -o app/gocheck .
+```
 
 ### 2️⃣ 啟動服務
 
@@ -248,6 +253,23 @@ services:
 * **.env** 請勿上傳到 GitHub
 * **record.txt** 為本地狀態檔案
 * Telegram Token 請妥善保管
+
+---
+## ✨ go-upgrade.sh 自動下載更新 Go，只適用於 Linux 系統  
+必須賦予腳本執行權限：
+```bash
+chmod +x ./go-upgrade.sh
+```
+
+使用方式：sudo ./go-upgrade.sh <版本號>  
+例如：
+```bash
+sudo ./go-upgrade.sh 1.26.4
+```
+> [!TIP] 未安裝過 Go 也會自動安裝
+>
+> **腳本有防呆機制，低於或等於目前的版本不會更新**
+>
 
 ---
 
