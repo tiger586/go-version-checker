@@ -70,7 +70,7 @@ PWD_BAK=$(pwd)
 cd "${TMP_DIR}"
 wget -q --show-progress --progress=bar:force "${URL}"
 # 雙重檢查：1. 檢查 wget 的結束狀態碼  2. 檢查檔案是否真的存在且大於 0 位元組 (-s)
-if [ $? -ne 0 ] || [ ! -s "go${TARGET_VERSION}.linux-amd64.tar.gz" ]; then
+if [ $? -ne 0 ] || [ ! -s "${FILENAME}" ]; then
     echo "❌ 錯誤：檔案下載失敗！請檢查版本號是否正確，或網路是否連通。"
     cd "${PWD_BAK}"
     rm -rf "${TMP_DIR}"
