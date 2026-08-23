@@ -281,6 +281,31 @@ func getReleaseInfo(version string) (string, error) {
 	})
 
 	if result == "" {
+		doc.Find("h2").Each(func(i int, s *goquery.Selection) {
+			id, exists := s.Attr("id")
+			if !exists {
+				return
+			}
+
+			// 找到對應 version 的 <p id="go1.26.3">
+			if id == version {
+				text := strings.Join(strings.Fields(s.Text()), " ")
+
+				// 找 h2 後面的第一個 p
+				p := s.NextFiltered("p")
+
+				if p.Length() > 0 {
+					result = strings.TrimSpace(
+						text + " includes " + strings.Join(strings.Fields(p.Text()), " "),
+					)
+				} else {
+					result = strings.TrimSpace(text)
+				}
+			}
+		})
+	}
+
+	if result == "" {
 		return "", fmt.Errorf("version not found")
 	}
 
