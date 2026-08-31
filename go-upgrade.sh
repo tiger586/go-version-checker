@@ -19,31 +19,17 @@ fi
 
 TARGET_VERSION=$1
 
-# 1. 偵測作業系統 (Linux 或 Darwin/Mac)
-OS_TYPE=$(uname -s | tr '[:upper:]' '[:lower:]')
-
-# 2. 偵測系統架構 (amd64/x86_64 或 arm64/aarch64)
+# 偵測系統架構 (amd64/x86_64 或 arm64/aarch64)
 ARCH_TYPE=$(uname -m)
 
-# 3. 轉換架構名稱以符合 Go 的官方命名
+# 轉換架構名稱以符合 Go 的官方命名
 case "$ARCH_TYPE" in
     x86_64)  ARCH="amd64" ;;
     aarch64|arm64) ARCH="arm64" ;;
     *) echo "不支援的架構: $ARCH_TYPE"; exit 1 ;;
 esac
 
-# 4. 根據作業系統決定副檔名與檔名
-if [ "$OS_TYPE" = "darwin" ]; then
-    # Mac 系統 (副檔名通常是 .tar.gz 或官方安裝包 .pkg，這裡以 .tar.gz 為例)
-    FILENAME="go${TARGET_VERSION}.darwin-${ARCH}.tar.gz"
-elif [ "$OS_TYPE" = "linux" ]; then
-    # Linux 系統
-    FILENAME="go${TARGET_VERSION}.linux-${ARCH}.tar.gz"
-else
-    echo "不支援的作業系統: $OS_TYPE"
-    exit 1
-fi
-
+FILENAME="go${TARGET_VERSION}.linux-${ARCH}.tar.gz"
 URL="https://go.dev/dl/${FILENAME}"
 TMP_DIR="/tmp/go_update_$(date +%s)"
 
