@@ -274,7 +274,7 @@ sudo ./go-upgrade.sh 1.27.0
 curl -fsSL https://raw.githubusercontent.com/tiger586/go-version-checker/main/go-upgrade.sh | sudo bash -s -- 1.27.0
 ```
 
-> [!TIP] 未安裝過 Go 也會自動安裝，但是執行路徑需要手動設定
+> [!TIP] 未安裝過 Go 也會自動安裝，並自動設定 go 路徑  
 >
 > **腳本有防呆機制，低於或等於目前的版本不會更新**
 >

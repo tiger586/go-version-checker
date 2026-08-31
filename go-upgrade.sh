@@ -67,7 +67,7 @@ if [ -n "$CURRENT_VERSION" ]; then
     
     echo "✅ 檢查通過：目標版本較新，開始執行更新流程。"
 else
-    echo "ℹ️  系統目前未安裝 Go，將直接進行全新安裝。"
+    echo "ℹ️ 系統目前未安裝 Go，將直接進行全新安裝。"
 fi
 
 # -----------------------------------------------------------------
@@ -76,7 +76,7 @@ fi
 echo "🚀 準備更新 Go 至版本: ${TARGET_VERSION}..."
 mkdir -p "${TMP_DIR}"
 
-echo "📥 正在下載 ${FILENAME}..."
+echo "📥 正在下載 ..."
 PWD_BAK=$(pwd)
 cd "${TMP_DIR}"
 wget -q --show-progress --progress=bar:force "${URL}"
@@ -89,7 +89,7 @@ if [ $? -ne 0 ] || [ ! -s "${FILENAME}" ]; then
 fi
 cd "${PWD_BAK}"
 
-echo "📦 正在解壓縮並安全更新..."
+echo "📦 正在解壓縮並安裝更新..."
 mkdir -p "${TMP_DIR}/go_extracted"
 tar -C "${TMP_DIR}/go_extracted" -xzf "${TMP_DIR}/${FILENAME}"
 
@@ -106,3 +106,76 @@ else
 fi
 
 rm -rf "${TMP_DIR}"
+
+# 自動設定路徑
+# 1. 判斷目前使用的是哪一種 Shell，精準偵測「觸發 sudo 前」的原始 Shell
+if [ -n "$SUDO_USER" ]; then
+    # 方法 A：在 Linux/Mac 通用的 ps 溯源法（尋找父程序的 Shell 名稱）
+    # $$ 是目前腳本 PID，$PPID 是 sudo 的 PID，我們再往上一層找就是原本的 Shell
+    PARENT_PID=$(ps -o ppid= -p $PPID | tr -d ' ')
+    ORIGINAL_SHELL_PATH=$(ps -o comm= -p $PARENT_PID | tr -d '-')
+    CURRENT_SHELL=$(basename "$ORIGINAL_SHELL_PATH" 2>/dev/null)
+    
+    # 備用防錯：如果 ps 抓不到，則直接去系統資料庫讀取該使用者的預設 Shell
+    if [ -z "$CURRENT_SHELL" ] || [ "$CURRENT_SHELL" = "sudo" ]; then
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            CURRENT_SHELL=$(dscl . -read "/Users/$SUDO_USER" UserShell | awk '{print $2}' | xargs basename)
+        else
+            CURRENT_SHELL=$(getent passwd "$SUDO_USER" | cut -d: -f7 | xargs basename)
+        fi
+    fi
+else
+    # 如果不是用 sudo 執行的正常情況
+    CURRENT_SHELL=$(basename "$SHELL" 2>/dev/null)
+    if [ -z "$CURRENT_SHELL" ]; then
+        CURRENT_SHELL=$(ps -p $$ -o comm= | tr -d '-')
+    fi
+fi
+
+# ================= 修正核心：決定正確的家目錄 =================
+# 如果是用 sudo 執行，則優先使用原本呼叫者的家目錄，否則才用目前的 $HOME
+if [ -n "$SUDO_USER" ]; then
+    USER_HOME=$(eval echo "~$SUDO_USER")
+else
+    USER_HOME="$HOME"
+fi
+# ============================================================
+
+# 2. 根據 Shell 類型指定對應的設定檔（改用 $USER_HOME）
+RC_FILE=""
+case "$CURRENT_SHELL" in
+    zsh)
+        RC_FILE="$USER_HOME/.zshrc"
+        ;;
+    bash|sh)
+        RC_FILE="$USER_HOME/.profile"
+        ;;
+    *)
+        RC_FILE="$USER_HOME/.profile"
+        ;;
+esac
+
+# 3. 定義要檢查與加入的環境變數內容
+TARGET_LINE='export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin'
+
+# 確保設定檔存在，若不存在則建立空檔案
+touch "$RC_FILE"
+
+# 4. 檢查檔案內是否已存在該設定
+if fgrep -qxF "$TARGET_LINE" "$RC_FILE"; then
+    # echo "💡 Go 路徑已存在於 $RC_FILE 中，無需設定。"
+    echo ""
+else
+    # 5. 自動加入設定並提示使用者
+    echo "" >> "$RC_FILE"
+    echo "$TARGET_LINE" >> "$RC_FILE"
+    
+    # 修正：因為用 sudo 建立的檔案擁有者會變成 root，要把檔案權限還給原本的使用者
+    if [ -n "$SUDO_USER" ]; then
+        chown "$SUDO_USER" "$RC_FILE"
+    fi
+
+    echo "✅ 已將 Go 路徑加入至 $RC_FILE。"
+    echo "💡 請執行 source $RC_FILE 或重開終端機以啟用設定。"
+    echo ""
+fi
