@@ -255,23 +255,23 @@ services:
 * Telegram Token 請妥善保管
 
 ---
-## ✨ go-upgrade.sh 自動下載更新 Go，只適用於 Linux 系統  
+## ✨ go-upgrade.sh 自動下載更新 Go，適用於 Linux 多系統架構  
 使用方式：sudo ./go-upgrade.sh <版本號>  
 例如：
 ```bash
-sudo ./go-upgrade.sh 1.26.4
+sudo ./go-upgrade.sh 1.27.0
 ```
 
 ### 下載後執行：
 ```bash
 wget https://raw.githubusercontent.com/tiger586/go-version-checker/main/go-upgrade.sh
 chmod +x ./go-upgrade.sh
-sudo ./go-upgrade.sh 1.26.4
+sudo ./go-upgrade.sh 1.27.0
 ```
 
 ### 直接執行腳本：
 ```bash
-curl -fsSL https://raw.githubusercontent.com/tiger586/go-version-checker/main/go-upgrade.sh | sudo bash -s -- 1.26.4
+curl -fsSL https://raw.githubusercontent.com/tiger586/go-version-checker/main/go-upgrade.sh | sudo bash -s -- 1.27.0
 ```
 
 > [!TIP] 未安裝過 Go 也會自動安裝，但是執行路徑需要手動設定
